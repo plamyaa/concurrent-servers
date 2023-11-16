@@ -1,3 +1,4 @@
 server
 server.dSYM
 .main.c.swp
+.DS_Store
