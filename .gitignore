@@ -1,4 +1,4 @@
-server
-server.dSYM
-.main.c.swp
+*.dSYM
+/build
+
 .DS_Store
