@@ -5,22 +5,20 @@ CCFLAGS = -g -pthread
 LDFLAGS = -lpthread -pthread
 
 BUILDDIR = build
-EXECUTABLES = $(BUILDDIR)/threaded-server
+EXECUTABLES = \
+		utils.c\
+		threaded-server.c \
+		blocking-listener.c
 
-SOURCES = utils.c threaded-server.c
-OBJECTS = $(patsubst %.c, $(BUILDDIR)/%.o, $(SOURCES))
+all: $(EXECUTABLES)
 
-$(EXECUTABLES): $(OBJECTS) | $(BUILDDIR)
-		$(CC) $(CCFLAGS) $^ -o $@ $(LDFLAGS)
-		rm -f $(BUILDDIR)/*.o
+threaded-server: utils.c threaded-server.c
+	$(CC) $(CCFLAGS) $^ -o build/$@ $(LDFLAGS)
 
-$(BUILDDIR)/%.o: %.c | $(BUILDDIR)
-		$(CC) $(CCFLAGS) -c $< -o $@
-
-$(BUILDDIR):
-		mkdir -p $(BUILDDIR)
+blocking-listener: utils.c blocking-listener.c
+	$(CC) $(CCFLAGS) $^ -o build/$@ $(LDFLAGS)
 
 clean:
-		rm -f $(EXECUTABLES) $(BUILDDIR)/*.o
+		rm -f $(EXECUTABLES) *.o
 
 .PHONY: clean
