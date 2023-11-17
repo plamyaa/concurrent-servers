@@ -87,3 +87,18 @@ int32_t accept_with_log(uint32_t sockfd)
 
     return new_fd;
 }
+
+void set_non_blocking (uint32_t sockfd) 
+{
+    int32_t flags;
+    
+    if ((flags = fcntl(sockfd, F_GETFL, 0)) == -1) {
+        perror("fcntl F_GETFL");
+        exit(2);
+    }
+
+    if (fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) == -1) {
+        perror("fcntl F_SETFL NONBLOCK");
+        exit(2);
+    }
+}
