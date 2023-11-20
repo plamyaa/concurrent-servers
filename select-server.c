@@ -1,19 +1,14 @@
-#include "utils.h"
-
 #include <assert.h>
 #include <stdbool.h>
 #include <sys/select.h>
+
+#include "utils.h"
 
 #define PORT "9090"
 #define MAXFDS 1000
 #define SENDBUF_SIZE 1024
 
 typedef enum { INITIAL_ACK, WAIT_FOR_MSG, IN_MSG } processing_state;
-
-typedef struct {
-    bool want_read;
-    bool want_write;
-} fd_status_t;
 
 typedef struct {
     processing_state state;
@@ -24,21 +19,27 @@ typedef struct {
 
 peer_state_t global_state[MAXFDS];
 
+typedef struct {
+    bool want_read;
+    bool want_write;
+} fd_status_t;
+
 const fd_status_t fd_status_R = { .want_read = true, .want_write = false };
 const fd_status_t fd_status_W = { .want_read = false, .want_write = true };
 const fd_status_t fd_status_RW = { .want_read = true, .want_write = true };
 const fd_status_t fd_status_NORW = { .want_read = false, .want_write = false };
 
-fd_status_t on_peer_connected(int32_t sockfd) {
+fd_status_t on_peer_connected(int32_t sockfd)
+{
     assert(sockfd < MAXFDS);
 
     peer_state_t* peerstate = &global_state[sockfd];
     peerstate->state = INITIAL_ACK;
     peerstate->sendbuf[0] = '*';
-    peerstate->sendbuf_end = 1;
     peerstate->sendptr = 0;
+    peerstate->sendbuf_end = 1;
 
-    return fd_status_R;
+    return fd_status_W;
 }
 
 fd_status_t on_peer_ready_recv(int32_t sockfd) {
@@ -68,20 +69,20 @@ fd_status_t on_peer_ready_recv(int32_t sockfd) {
     }
 
     for (uint32_t i = 0; i < n_bytes; i++) {
-        switch(peerstate->state) {
+        switch (peerstate->state) {
             case INITIAL_ACK:
-                assert(0 && "Can't reach here");
+                assert(0 && "can't reach here");
                 break;
             case WAIT_FOR_MSG:
-                if (buf[i] == '^')
+                if (buf[i] == '^') {
                     peerstate->state = IN_MSG;
+                }
                 break;
 
             case IN_MSG:
                 if (buf[i] == '$') {
                     peerstate->state = WAIT_FOR_MSG;
                 }
-
                 else {
                     assert(peerstate->sendbuf_end < SENDBUF_SIZE);
                     peerstate->sendbuf[peerstate->sendbuf_end++] = buf[i] + 1;
@@ -101,7 +102,7 @@ fd_status_t on_peer_ready_send(int32_t sockfd) {
 
     peer_state_t* peerstate = &global_state[sockfd];
 
-    if (peerstate->sendptr >= peerstate->sendbuf_end) { // empty
+    if (peerstate->sendptr >= peerstate->sendbuf_end) {
         return fd_status_RW;
     }
 
@@ -135,7 +136,7 @@ fd_status_t on_peer_ready_send(int32_t sockfd) {
 
 int main(int argc, char* argv[]) 
 {
-    int32_t sockfd, n_ready, newsockfd, listener_sockfd;
+    int32_t sockfd, n_ready, newsockfd, listener_sockfd, fdset_max;
 
     listener_sockfd = listen_socket(PORT);
 
@@ -154,14 +155,14 @@ int main(int argc, char* argv[])
 
     FD_SET(listener_sockfd, &readfds_master);
 
-    int32_t fdset_max = listener_sockfd;
+    fdset_max = listener_sockfd;
 
     while (1) {
         fd_set readfds = readfds_master;
         fd_set writefds = writefds_master;
 
         if ((n_ready = select(fdset_max + 1, &readfds, &writefds, NULL, 
-                        NULL)) == -1) {
+                        NULL)) < 0) {
             perror("server: select");
             exit(2);
         }
@@ -205,7 +206,6 @@ int main(int argc, char* argv[])
                     }
                 }
                 else {
-                    printf("handle recv");
                     fd_status_t status = on_peer_ready_recv(fd);
 
                     if (status.want_read) {
@@ -225,9 +225,9 @@ int main(int argc, char* argv[])
                     }
                 }
             }
+
             if (FD_ISSET(fd, &writefds)) {
                 n_ready--;
-                printf("send");
                 fd_status_t status = on_peer_ready_send(fd);
 
                 if (status.want_read) {
