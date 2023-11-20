@@ -1,6 +1,7 @@
 #include "utils.h"
 
 #define BACKLOG 64
+#define N_BACKLOG 64
 
 void *get_in_addr(struct sockaddr *sa)
 {
@@ -100,5 +101,31 @@ void set_non_blocking (uint32_t sockfd)
     if (fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) == -1) {
         perror("fcntl F_SETFL NONBLOCK");
         exit(2);
+    }
+}
+
+void* xmalloc(size_t size)
+{
+    void* ptr = malloc(size);
+    
+    if (!ptr) {
+        fprintf(stderr, "malloc failed");
+        exit(1);
+    }
+
+    return ptr;
+}
+
+void report_peer_connected(const struct sockaddr_in* sa, socklen_t salen)
+{
+    char hostbuf[NI_MAXHOST];
+    char portbuf[NI_MAXSERV];
+
+    if (getnameinfo((struct sockaddr*)sa, salen, hostbuf, NI_MAXHOST, portbuf,
+                    NI_MAXSERV, 0) == 0) {
+        printf("peer (%s, %s) connected\n", hostbuf, portbuf);
+    } 
+    else {
+        printf("peer (unknonwn) connected\n");
     }
 }

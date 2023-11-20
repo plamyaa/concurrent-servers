@@ -13,6 +13,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <stdarg.h>
 
 void *get_in_addr(struct sockaddr *sa);
 
@@ -21,3 +22,7 @@ int32_t listen_socket(const char port[]);
 int32_t accept_with_log(uint32_t sockfd);
 
 void set_non_blocking (uint32_t sockfd);
+
+void* xmalloc(size_t size);
+
+void report_peer_connected(const struct sockaddr_in* sa, socklen_t salen);
